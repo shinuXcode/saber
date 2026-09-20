@@ -70,17 +70,6 @@ flutter {
 }
 
 dependencies {
-    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk7:2.2.10")
+    implementation("org.jetbrains.kotlin:kotlin-stdlib:2.4.10")
     implementation("com.google.android.material:material:1.14.0")
-}
-
-val abiCodes = mapOf("armeabi-v7a" to 1, "arm64-v8a" to 2, "x86_64" to 3)
-android.applicationVariants.configureEach {
-    val variant = this
-    variant.outputs.forEach { output ->
-        val abiVersionCode = abiCodes[output.filters.find { it.filterType == "ABI" }?.identifier]
-        if (abiVersionCode != null) {
-            (output as ApkVariantOutputImpl).versionCodeOverride = variant.versionCode * 10 + abiVersionCode
-        }
-    }
 }
