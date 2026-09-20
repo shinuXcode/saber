@@ -105,6 +105,13 @@ class Stows {
     volatile: !_isOnMainIsolate,
   );
 
+  /// Opens notes in a distraction-free, read-only reading view.
+  final readingMode = PlainStow(
+    'readingMode',
+    false,
+    volatile: !_isOnMainIsolate,
+  );
+
   /// Gives the editor toolbar a floating touch-note appearance.
   final floatingToolbar = PlainStow(
     'floatingToolbar',
