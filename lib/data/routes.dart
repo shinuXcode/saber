@@ -4,6 +4,7 @@ import 'package:path_to_regexp/path_to_regexp.dart';
 import 'package:saber/components/theming/adaptive_icon.dart';
 import 'package:saber/i18n/strings.g.dart';
 import 'package:saber/pages/home/home.dart';
+import 'package:saber/pages/home/mind_map.dart';
 
 // workaround to assign strings as enum values
 abstract class RoutePaths {
@@ -11,6 +12,7 @@ abstract class RoutePaths {
   static const edit = '/edit';
   static const login = '/login';
   static const logs = '/logs';
+  static const mindMap = '/mind-map';
 
   static const prefixOfHome = '/home';
 
