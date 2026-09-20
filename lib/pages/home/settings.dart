@@ -200,6 +200,12 @@ class _SettingsPageState extends State<SettingsPage> {
                   icon: Icons.menu_book,
                   pref: stows.paperEinkMode,
                 ),
+                SettingsSwitch(
+                  title: 'Reading mode',
+                  subtitle: 'Open notes with editing controls hidden for focused reading. Reading mode uses the Paper / E-Ink display.',
+                  icon: Icons.chrome_reader_mode,
+                  pref: stows.readingMode,
+                ),
 
                 SettingsSubtitle(subtitle: 'Backup Center'),
                 SettingsButton(
