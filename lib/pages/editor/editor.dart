@@ -161,6 +161,10 @@ class EditorState extends State<Editor> {
   }
 
   ValueNotifier<SavingState> savingState = ValueNotifier(SavingState.saved);
+  late final ValueNotifier<bool> readingMode = ValueNotifier(
+    stows.readingMode.value,
+  );
+  var _paperEinkWasEnabledBeforeReading = false;
   Timer? _delayedSaveTimer;
   Timer? _watchServerTimer;
 
@@ -183,11 +187,31 @@ class EditorState extends State<Editor> {
   @override
   void initState() {
     DynamicMaterialApp.addFullscreenListener(_setState);
+    readingMode.addListener(_onReadingModeChanged);
+    if (readingMode.value) {
+      stows.paperEinkMode.value = true;
+    }
 
     _initAsync();
     _assignKeybindings();
 
     super.initState();
+  }
+
+  void _onReadingModeChanged() {
+    if (!mounted) return;
+    setState(() {});
+  }
+
+  void toggleReadingMode() {
+    final next = !readingMode.value;
+    if (next) {
+      _paperEinkWasEnabledBeforeReading = stows.paperEinkMode.value;
+      stows.paperEinkMode.value = true;
+    } else if (!_paperEinkWasEnabledBeforeReading) {
+      stows.paperEinkMode.value = false;
+    }
+    readingMode.value = next;
   }
 
   void _initAsync() async {
@@ -514,7 +538,7 @@ class EditorState extends State<Editor> {
   PointerDeviceKind? currentPointerKind;
   double? currentPressure;
   bool isDrawGesture(ScaleStartDetails details) {
-    if (coreInfo.readOnly) return false;
+    if (coreInfo.readOnly || readingMode.value) return false;
 
     CanvasImage.activeListener
         .notifyListenersPlease(); // un-select active image
@@ -1409,7 +1433,13 @@ class EditorState extends State<Editor> {
           : null,
     );
 
-    final Widget toolbar = Collapsible(
+    final Widget toolbar = ValueListenableBuilder<bool>(
+      valueListenable: readingMode,
+      builder: (context, isReading, child) {
+        if (isReading) return const SizedBox.shrink();
+        return child!;
+      },
+      child: Collapsible(
       axis: isToolbarVertical
           ? CollapsibleAxis.horizontal
           : CollapsibleAxis.vertical,
@@ -1698,6 +1728,17 @@ class EditorState extends State<Editor> {
                         ),
                       );
                     },
+                  ),
+                  IconButton(
+                    tooltip: readingMode.value
+                        ? 'Exit reading mode'
+                        : 'Reading mode',
+                    icon: Icon(
+                      readingMode.value
+                          ? Icons.edit_outlined
+                          : Icons.chrome_reader_mode_outlined,
+                    ),
+                    onPressed: toggleReadingMode,
                   ),
                   IconButton(
                     icon: const AdaptiveIcon(
@@ -2067,6 +2108,8 @@ class EditorState extends State<Editor> {
     _delayedSaveTimer?.cancel();
     _watchServerTimer?.cancel();
     _lastSeenPointerCountTimer?.cancel();
+    readingMode.removeListener(_onReadingModeChanged);
+    readingMode.dispose();
 
     _removeKeybindings();
 
