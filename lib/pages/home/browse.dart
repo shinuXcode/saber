@@ -7,10 +7,12 @@ import 'package:go_router/go_router.dart';
 import 'package:path/path.dart' as p;
 import 'package:saber/components/home/delete_note_button.dart';
 import 'package:saber/components/home/export_note_button.dart';
+import 'package:saber/components/home/folder_cover_card.dart';
 import 'package:saber/components/home/grid_folders.dart';
 import 'package:saber/components/home/home_layout_button.dart';
 import 'package:saber/components/home/masonry_files.dart';
 import 'package:saber/components/home/move_note_button.dart';
+import 'package:saber/components/home/new_folder_dialog.dart';
 import 'package:saber/components/home/new_note_button.dart';
 import 'package:saber/components/home/no_files.dart';
 import 'package:saber/components/home/path_components.dart';
@@ -117,6 +119,12 @@ class _BrowsePageState extends State<BrowsePage> {
     findChildrenOfPath();
   }
 
+  Future<void> createNote() async {
+    final newFilePath = await FileManager.newFilePath('${path ?? ''}/');
+    if (!mounted) return;
+    context.push(RoutePaths.editFilePath(newFilePath));
+  }
+
   @override
   Widget build(BuildContext context) {
     final colorScheme = ColorScheme.of(context);
@@ -154,6 +162,22 @@ class _BrowsePageState extends State<BrowsePage> {
             child: PathComponents(path, onPathComponentTap: onPathComponentTap),
           ),
           const SliverPadding(padding: .only(bottom: 16)),
+          if (path != null)
+            FolderCoverCard(
+              folderName: p.basename(path!),
+              path: path!,
+              folderCount: children?.directories.length ?? 0,
+              noteCount: children?.files.length ?? 0,
+              onCreateFolder: () => showDialog(
+                context: context,
+                builder: (context) => NewFolderDialog(
+                  createFolder: createFolder,
+                  doesFolderExist: (name) =>
+                      children?.directories.contains(name) ?? false,
+                ),
+              ).then((_) => findChildrenOfPath()),
+              onCreateNote: createNote,
+            ),
           GridFolders(
             isAtRoot: path?.isEmpty ?? true,
             crossAxisCount: crossAxisCount,
