@@ -30,6 +30,7 @@ import 'package:saber/data/routes.dart';
 import 'package:saber/data/tools/shape_pen.dart';
 import 'package:saber/i18n/strings.g.dart';
 import 'package:stow/stow.dart';
+import 'package:saber/components/branding/sadab_logo.dart';
 
 class const SettingsPage({super.key}) extends StatefulWidget {
   @override
@@ -202,6 +203,17 @@ class _SettingsPageState extends State<SettingsPage> {
                   icon: Icons.chrome_reader_mode,
                   pref: stows.readingMode,
                 ),
+
+                SettingsSubtitle(subtitle: 'Sadab A branding'),
+                const SadabLogoSelector(),
+                const SizedBox(height: 12),
+                Center(
+                  child: ValueListenableBuilder(
+                    valueListenable: stows.logoVariant,
+                    builder: (context, _, _) => const SadabLogo(size: 88),
+                  ),
+                ),
+                const SizedBox(height: 20),
 
                 SettingsSubtitle(subtitle: 'Productivity suite'),
                 SettingsButton(
