@@ -64,6 +64,13 @@ class Stows {
     volatile: !_isOnMainIsolate,
   );
 
+  /// Selected Sadab A visual identity used by in-app branding surfaces.
+  final logoVariant = PlainStow(
+    'logoVariant',
+    'default',
+    volatile: !_isOnMainIsolate,
+  );
+
   /// Opens notes in a distraction-free, read-only reading view.
   final readingMode = PlainStow(
     'readingMode',
