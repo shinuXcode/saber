@@ -224,6 +224,10 @@ class const App({super.key}) extends StatefulWidget {
         ),
       ),
       GoRoute(
+        path: RoutePaths.mindMap,
+        builder: (context, state) => const MindMapPage(),
+      ),
+      GoRoute(
         path: RoutePaths.logs,
         builder: (context, state) => const LogsPage(),
       ),
