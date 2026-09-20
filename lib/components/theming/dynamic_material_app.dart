@@ -82,23 +82,6 @@ class DynamicMaterialAppState extends State<DynamicMaterialApp>
     );
   }
 
-  static ThemeData _paperTheme(ThemeData source, bool dark) {
-    final paper = dark ? const Color(0xFF1B1B19) : const Color(0xFFF4ECD8);
-    final ink = dark ? const Color(0xFFE5E0D8) : const Color(0xFF2C2924);
-    return source.copyWith(
-      scaffoldBackgroundColor: paper,
-      canvasColor: paper,
-      cardColor: paper,
-      dialogBackgroundColor: paper,
-      colorScheme: source.colorScheme.copyWith(
-        surface: paper,
-        surfaceContainer: paper,
-        onSurface: ink,
-      ),
-      splashFactory: NoSplash.splashFactory,
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final themeMode = useValueListenable(stows.appTheme);
@@ -183,6 +166,23 @@ class DynamicMaterialAppState extends State<DynamicMaterialApp>
 
 @visibleForTesting
 class ExplicitlyThemedApp extends StatelessWidget {
+  static ThemeData _paperTheme(ThemeData source, bool dark) {
+    final paper = dark ? const Color(0xFF1B1B19) : const Color(0xFFF4ECD8);
+    final ink = dark ? const Color(0xFFE5E0D8) : const Color(0xFF2C2924);
+    return source.copyWith(
+      scaffoldBackgroundColor: paper,
+      canvasColor: paper,
+      cardColor: paper,
+      dialogBackgroundColor: paper,
+      colorScheme: source.colorScheme.copyWith(
+        surface: paper,
+        surfaceContainer: paper,
+        onSurface: ink,
+      ),
+      splashFactory: NoSplash.splashFactory,
+    );
+  }
+
   @protected
   const new({
     super.key,
