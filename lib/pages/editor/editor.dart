@@ -38,6 +38,7 @@ import 'package:saber/data/extensions/change_notifier_extensions.dart';
 import 'package:saber/data/extensions/matrix4_extensions.dart';
 import 'package:saber/data/file_manager/file_manager.dart';
 import 'package:saber/data/prefs.dart';
+import 'package:saber/data/security/note_lock_service.dart';
 import 'package:saber/data/tools/_tool.dart';
 import 'package:saber/data/tools/eraser.dart';
 import 'package:saber/data/tools/highlighter.dart';
@@ -196,6 +197,87 @@ class EditorState extends State<Editor> {
     super.initState();
   }
 
+  Future<bool> _promptUnlock(String filePath) async {
+    final controller = TextEditingController();
+    final pin = await showDialog<String>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: const Text('Note locked'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          obscureText: true,
+          keyboardType: TextInputType.number,
+          maxLength: 12,
+          decoration: const InputDecoration(labelText: 'PIN'),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          FilledButton(onPressed: () => Navigator.pop(context, controller.text), child: const Text('Unlock')),
+        ],
+      ),
+    );
+    controller.dispose();
+    if (pin == null) return false;
+    return NoteLockService.verify(filePath, pin);
+  }
+
+  Future<void> _manageNoteLock() async {
+    final filePath = coreInfo.filePath + Editor.extension;
+    final locked = await NoteLockService.isLocked(filePath);
+    if (!mounted) return;
+    if (locked) {
+      final controller = TextEditingController();
+      final pin = await showDialog<String>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Remove note lock'),
+          content: TextField(controller: controller, obscureText: true, keyboardType: TextInputType.number, maxLength: 12, decoration: const InputDecoration(labelText: 'Current PIN')),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+            FilledButton(onPressed: () => Navigator.pop(context, controller.text), child: const Text('Remove')),
+          ],
+        ),
+      );
+      controller.dispose();
+      if (pin != null && await NoteLockService.verify(filePath, pin)) {
+        await NoteLockService.remove(filePath);
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Note lock removed.')));
+      }
+      return;
+    }
+    final first = TextEditingController();
+    final second = TextEditingController();
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Lock note'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(controller: first, obscureText: true, keyboardType: TextInputType.number, maxLength: 12, decoration: const InputDecoration(labelText: 'PIN')),
+            TextField(controller: second, obscureText: true, keyboardType: TextInputType.number, maxLength: 12, decoration: const InputDecoration(labelText: 'Confirm PIN')),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+          FilledButton(onPressed: () => Navigator.pop(context, first.text.isNotEmpty && first.text == second.text), child: const Text('Lock')),
+        ],
+      ),
+    );
+    if (confirmed == true) {
+      try {
+        await NoteLockService.setPin(filePath, first.text);
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Note locked.')));
+      } catch (error) {
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$error')));
+      }
+    }
+    first.dispose();
+    second.dispose();
+  }
+
   void _onReadingModeChanged() {
     if (!mounted) return;
     setState(() {});
@@ -221,6 +303,14 @@ class EditorState extends State<Editor> {
         baseOffset: 0,
         extentOffset: filenameTextEditingController.text.length,
       );
+    }
+
+    if (!needsNaming && await NoteLockService.isLocked(filePath)) {
+      final unlocked = await _promptUnlock(filePath);
+      if (!unlocked) {
+        if (mounted) Navigator.of(context).pop();
+        return;
+      }
     }
 
     await _loadCoreInfo(filePath);
