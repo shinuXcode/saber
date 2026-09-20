@@ -1685,6 +1685,7 @@ class EditorState extends State<Editor> {
                             border: InputBorder.none,
                           ),
                           controller: filenameTextEditingController,
+                          readOnly: readingMode.value,
                           onChanged: renameFile,
                           autofocus: needsNaming,
                           validator: _validateFilenameTextField,
@@ -1695,11 +1696,12 @@ class EditorState extends State<Editor> {
                   triggerSave: saveToFile,
                 ),
                 actions: [
-                  IconButton(
-                    icon: const AdaptiveIcon(
-                      icon: Icons.insert_page_break,
-                      cupertinoIcon: CupertinoIcons.add,
-                    ),
+                  if (!readingMode.value)
+                    IconButton(
+                      icon: const AdaptiveIcon(
+                        icon: Icons.insert_page_break,
+                        cupertinoIcon: CupertinoIcons.add,
+                      ),
                     tooltip: t.editor.menu.insertPage,
                     onPressed: () => setState(() {
                       final currentPageIndex = this.currentPageIndex;
@@ -1712,11 +1714,12 @@ class EditorState extends State<Editor> {
                       );
                     }),
                   ),
-                  IconButton(
-                    icon: const AdaptiveIcon(
-                      icon: Icons.grid_view,
-                      cupertinoIcon: CupertinoIcons.rectangle_grid_2x2,
-                    ),
+                  if (!readingMode.value)
+                    IconButton(
+                      icon: const AdaptiveIcon(
+                        icon: Icons.grid_view,
+                        cupertinoIcon: CupertinoIcons.rectangle_grid_2x2,
+                      ),
                     tooltip: t.editor.pages,
                     onPressed: () {
                       showDialog(
@@ -1740,11 +1743,12 @@ class EditorState extends State<Editor> {
                     ),
                     onPressed: toggleReadingMode,
                   ),
-                  IconButton(
-                    icon: const AdaptiveIcon(
-                      icon: Icons.more_vert,
-                      cupertinoIcon: CupertinoIcons.ellipsis_vertical,
-                    ),
+                  if (!readingMode.value)
+                    IconButton(
+                      icon: const AdaptiveIcon(
+                        icon: Icons.more_vert,
+                        cupertinoIcon: CupertinoIcons.ellipsis_vertical,
+                      ),
                     onPressed: () {
                       showModalBottomSheet(
                         context: context,
