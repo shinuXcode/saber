@@ -98,6 +98,20 @@ class Stows {
     volatile: !_isOnMainIsolate,
   );
 
+  /// Paper-like display mode for long writing/study sessions.
+  final paperEinkMode = PlainStow(
+    'paperEinkMode',
+    false,
+    volatile: !_isOnMainIsolate,
+  );
+
+  /// Gives the editor toolbar a floating touch-note appearance.
+  final floatingToolbar = PlainStow(
+    'floatingToolbar',
+    true,
+    volatile: !_isOnMainIsolate,
+  );
+
   /// The type of platform to theme. Default value is [defaultTargetPlatform].
   final platform = PlainStow(
     'platform',
