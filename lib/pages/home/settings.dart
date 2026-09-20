@@ -203,6 +203,26 @@ class _SettingsPageState extends State<SettingsPage> {
                   pref: stows.readingMode,
                 ),
 
+                SettingsSubtitle(subtitle: 'Productivity suite'),
+                SettingsButton(
+                  title: 'Mind Map',
+                  subtitle: 'Create and organize a local-first visual mind map.',
+                  icon: Icons.account_tree_outlined,
+                  onPressed: () => context.push(RoutePaths.mindMap),
+                ),
+                SettingsSwitch(
+                  title: 'Floating Pen Case',
+                  subtitle: 'Keep your writing tools within thumb reach.',
+                  icon: Icons.edit_note,
+                  pref: stows.floatingToolbar,
+                ),
+                SettingsSwitch(
+                  title: 'Study Mode',
+                  subtitle: 'Use Reading Mode as a distraction-free study surface.',
+                  icon: Icons.school_outlined,
+                  pref: stows.readingMode,
+                ),
+
                 SettingsSubtitle(subtitle: 'Backup Center'),
                 SettingsButton(
                   title: 'Backup to Google Drive',
