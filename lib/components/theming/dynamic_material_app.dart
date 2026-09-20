@@ -166,6 +166,23 @@ class DynamicMaterialAppState extends State<DynamicMaterialApp>
 
 @visibleForTesting
 class ExplicitlyThemedApp extends StatelessWidget {
+  static ThemeData _paperTheme(ThemeData source, bool dark) {
+    final paper = dark ? const Color(0xFF1B1B19) : const Color(0xFFF4ECD8);
+    final ink = dark ? const Color(0xFFE5E0D8) : const Color(0xFF2C2924);
+    return source.copyWith(
+      scaffoldBackgroundColor: paper,
+      canvasColor: paper,
+      cardColor: paper,
+      dialogBackgroundColor: paper,
+      colorScheme: source.colorScheme.copyWith(
+        surface: paper,
+        surfaceContainer: paper,
+        onSurface: ink,
+      ),
+      splashFactory: NoSplash.splashFactory,
+    );
+  }
+
   @protected
   const new({
     super.key,
@@ -197,8 +214,11 @@ class ExplicitlyThemedApp extends StatelessWidget {
           colorScheme: darkTheme?.colorScheme.withHighContrast(),
         );
 
-    return MaterialApp.router(
-      key: _materialAppKey,
+    return ValueListenableBuilder<bool>(
+      valueListenable: stows.paperEinkMode,
+      builder: (context, paperMode, _) {
+        return MaterialApp.router(
+          key: _materialAppKey,
       title: title,
       routeInformationProvider: router.routeInformationProvider,
       routeInformationParser: router.routeInformationParser,
@@ -219,12 +239,20 @@ class ExplicitlyThemedApp extends StatelessWidget {
           FlutterQuillLocalizations.delegate,
         ),
       ],
-      themeMode: themeMode,
-      theme: theme,
-      darkTheme: darkTheme,
-      highContrastTheme: highContrastTheme,
-      highContrastDarkTheme: highContrastDarkTheme,
-      debugShowCheckedModeBanner: false,
+          themeMode: themeMode,
+          theme: paperMode ? _paperTheme(theme, false) : theme,
+          darkTheme: paperMode && darkTheme != null
+              ? _paperTheme(darkTheme!, true)
+              : darkTheme,
+          highContrastTheme: paperMode && highContrastTheme != null
+              ? _paperTheme(highContrastTheme!, false)
+              : highContrastTheme,
+          highContrastDarkTheme: paperMode && highContrastDarkTheme != null
+              ? _paperTheme(highContrastDarkTheme!, true)
+              : highContrastDarkTheme,
+          debugShowCheckedModeBanner: false,
+        );
+      },
     );
   }
 }

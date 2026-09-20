@@ -22,6 +22,7 @@ import 'package:saber/components/theming/adaptive_alert_dialog.dart';
 import 'package:saber/components/theming/adaptive_toggle_buttons.dart';
 import 'package:saber/components/theming/saber_theme.dart';
 import 'package:saber/components/theming/uni_icon.dart';
+import 'package:saber/data/backup/sadab_backup_service.dart';
 import 'package:saber/data/file_manager/file_manager.dart';
 import 'package:saber/data/flavor_config.dart';
 import 'package:saber/data/is_this_a_test.dart';
@@ -191,6 +192,62 @@ class _SettingsPageState extends State<SettingsPage> {
               children: [
                 const NextcloudProfile(),
                 const Padding(padding: .all(8), child: AppInfo()),
+
+                SettingsSubtitle(subtitle: 'Study display'),
+                SettingsSwitch(
+                  title: 'Paper / E-Ink mode',
+                  subtitle: 'Warm paper-like surfaces with reduced visual effects.',
+                  icon: Icons.menu_book,
+                  pref: stows.paperEinkMode,
+                ),
+
+                SettingsSubtitle(subtitle: 'Backup Center'),
+                SettingsButton(
+                  title: 'Backup to Google Drive',
+                  subtitle: 'Use the system file picker and choose Google Drive as the destination.',
+                  icon: Icons.cloud_upload,
+                  onPressed: () async {
+                    try {
+                      final saved = await SadabBackupService.saveBackup();
+                      if (!context.mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            saved ? 'Backup created successfully.' : 'Backup cancelled.',
+                          ),
+                        ),
+                      );
+                    } catch (error) {
+                      if (!context.mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Backup failed: $error')),
+                      );
+                    }
+                  },
+                ),
+                SettingsButton(
+                  title: 'Restore backup',
+                  subtitle: 'Restore a Sadab A .zip backup from local storage or a cloud provider.',
+                  icon: Icons.cloud_download,
+                  onPressed: () async {
+                    try {
+                      final restored = await SadabBackupService.restoreBackup();
+                      if (!context.mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            restored ? 'Backup restored. Reopen notes to refresh their contents.' : 'Restore cancelled.',
+                          ),
+                        ),
+                      );
+                    } catch (error) {
+                      if (!context.mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Restore failed: $error')),
+                      );
+                    }
+                  },
+                ),
                 SettingsSubtitle(subtitle: t.settings.prefCategories.general),
                 SettingsDropdown(
                   title: t.settings.prefLabels.locale,
