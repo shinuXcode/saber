@@ -12,7 +12,6 @@ void main() {
     for (final brightness in Brightness.values)
       testWidgets(brightness.name, (tester) async {
         FlavorConfig.setup();
-        stows.sentryConsent.value = .granted;
         stows.layoutSize.value = .phone;
 
         final router = GoRouter(
