@@ -18,7 +18,6 @@ void main() {
     setUp(() {
       FlavorConfig.setup();
       setupMockPathProvider();
-      stows.sentryConsent.value = .granted;
       FileManager.init(shouldWatchRootDirectory: false);
       BrowsePage.overrideChildren = DirectoryChildren(
         const ['subfolder1', 'subfolder2'],

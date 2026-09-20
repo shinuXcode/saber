@@ -12,7 +12,6 @@ void main() {
       for (final brightness in Brightness.values)
         testGoldens('${platform.name}_${brightness.name}', (tester) async {
           FlavorConfig.setup();
-          stows.sentryConsent.value = .granted;
 
           final theme = SaberTheme.createThemeFromSeed(
             Colors.yellow,
