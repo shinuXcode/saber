@@ -1846,7 +1846,10 @@ class EditorState extends State<Editor> {
     final invert = stows.editorAutoInvert.value && brightness == .dark;
     final int currentPageIndex = this.currentPageIndex;
 
-    return EditorBottomSheet(
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        EditorBottomSheet(
       invert: invert,
       coreInfo: coreInfo,
       currentPageIndex: currentPageIndex,
@@ -1903,6 +1906,17 @@ class EditorState extends State<Editor> {
       pickPhotos: _pickPhotos,
       importPdf: importPdf,
       canRasterPdf: Editor.canRasterPdf,
+    ),
+        ListTile(
+          leading: const Icon(Icons.lock_outline),
+          title: const Text('Note lock'),
+          subtitle: const Text('Protect this note on this device'),
+          onTap: () {
+            Navigator.pop(context);
+            _manageNoteLock();
+          },
+        ),
+      ],
     );
   }
 
