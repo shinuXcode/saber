@@ -554,7 +554,7 @@ class _ToolbarState extends State<Toolbar> {
       ),
     ];
 
-    return Flex(
+    final toolbar = Flex(
       direction: isToolbarVertical ? Axis.horizontal : Axis.vertical,
       textDirection: switch (stows.editorToolbarAlignment.value) {
         AxisDirection.left => .rtl,
@@ -567,6 +567,28 @@ class _ToolbarState extends State<Toolbar> {
         _ => VerticalDirection.down,
       },
       children: bars,
+    );
+
+    if (!stows.floatingToolbar.value) return toolbar;
+
+    return Padding(
+      padding: const EdgeInsets.all(8),
+      child: Material(
+        elevation: 7,
+        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.96),
+        shadowColor: Colors.black.withValues(alpha: 0.22),
+        borderRadius: BorderRadius.circular(22),
+        clipBehavior: Clip.antiAlias,
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            border: Border.all(
+              color: colorScheme.outlineVariant.withValues(alpha: 0.55),
+            ),
+            borderRadius: BorderRadius.circular(22),
+          ),
+          child: toolbar,
+        ),
+      ),
     );
   }
 
