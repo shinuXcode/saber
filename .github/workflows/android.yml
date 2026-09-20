@@ -1,15 +1,16 @@
 name: Build for Android
 
 on:
-  # Enable manual run
+  # Build Android artifacts for every branch push and allow manual runs.
   workflow_dispatch:
   push:
     tags:
       - "**"
     branches:
       - "**"
-    paths:
-      - .github/workflows/android.yml
+  pull_request:
+    branches:
+      - "**"
 
 jobs:
   build-android:
@@ -84,7 +85,12 @@ jobs:
         if: matrix.foss
 
       - name: Build apk
-        run: flutter build apk
+        run: flutter build apk --release
+
+      - name: Verify APK output
+        run: |
+          test -s build/app/outputs/flutter-apk/app-release.apk
+          ls -lh build/app/outputs/flutter-apk/app-release.apk
 
       - name: Rename apk
         id: rename_apk
