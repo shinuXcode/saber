@@ -37,8 +37,8 @@ import 'package:saber/data/editor/page.dart';
 import 'package:saber/data/extensions/change_notifier_extensions.dart';
 import 'package:saber/data/extensions/matrix4_extensions.dart';
 import 'package:saber/data/file_manager/file_manager.dart';
-import 'package:saber/data/nextcloud/saber_syncer.dart';
 import 'package:saber/data/prefs.dart';
+import 'package:saber/data/security/note_lock_service.dart';
 import 'package:saber/data/tools/_tool.dart';
 import 'package:saber/data/tools/eraser.dart';
 import 'package:saber/data/tools/highlighter.dart';
@@ -166,7 +166,6 @@ class EditorState extends State<Editor> {
   );
   var _paperEinkWasEnabledBeforeReading = false;
   Timer? _delayedSaveTimer;
-  Timer? _watchServerTimer;
 
   // used to prevent accidentally drawing when pinch zooming
   var lastSeenPointerCount = 0;
@@ -198,6 +197,87 @@ class EditorState extends State<Editor> {
     super.initState();
   }
 
+  Future<bool> _promptUnlock(String filePath) async {
+    final controller = TextEditingController();
+    final pin = await showDialog<String>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: const Text('Note locked'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          obscureText: true,
+          keyboardType: TextInputType.number,
+          maxLength: 12,
+          decoration: const InputDecoration(labelText: 'PIN'),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          FilledButton(onPressed: () => Navigator.pop(context, controller.text), child: const Text('Unlock')),
+        ],
+      ),
+    );
+    controller.dispose();
+    if (pin == null) return false;
+    return NoteLockService.verify(filePath, pin);
+  }
+
+  Future<void> _manageNoteLock() async {
+    final filePath = coreInfo.filePath + Editor.extension;
+    final locked = await NoteLockService.isLocked(filePath);
+    if (!mounted) return;
+    if (locked) {
+      final controller = TextEditingController();
+      final pin = await showDialog<String>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Remove note lock'),
+          content: TextField(controller: controller, obscureText: true, keyboardType: TextInputType.number, maxLength: 12, decoration: const InputDecoration(labelText: 'Current PIN')),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+            FilledButton(onPressed: () => Navigator.pop(context, controller.text), child: const Text('Remove')),
+          ],
+        ),
+      );
+      controller.dispose();
+      if (pin != null && await NoteLockService.verify(filePath, pin)) {
+        await NoteLockService.remove(filePath);
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Note lock removed.')));
+      }
+      return;
+    }
+    final first = TextEditingController();
+    final second = TextEditingController();
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Lock note'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(controller: first, obscureText: true, keyboardType: TextInputType.number, maxLength: 12, decoration: const InputDecoration(labelText: 'PIN')),
+            TextField(controller: second, obscureText: true, keyboardType: TextInputType.number, maxLength: 12, decoration: const InputDecoration(labelText: 'Confirm PIN')),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+          FilledButton(onPressed: () => Navigator.pop(context, first.text.isNotEmpty && first.text == second.text), child: const Text('Lock')),
+        ],
+      ),
+    );
+    if (confirmed == true) {
+      try {
+        await NoteLockService.setPin(filePath, first.text);
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Note locked.')));
+      } catch (error) {
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$error')));
+      }
+    }
+    first.dispose();
+    second.dispose();
+  }
+
   void _onReadingModeChanged() {
     if (!mounted) return;
     setState(() {});
@@ -223,6 +303,14 @@ class EditorState extends State<Editor> {
         baseOffset: 0,
         extentOffset: filenameTextEditingController.text.length,
       );
+    }
+
+    if (!needsNaming && await NoteLockService.isLocked(filePath)) {
+      final unlocked = await _promptUnlock(filePath);
+      if (!unlocked) {
+        if (mounted) Navigator.of(context).pop();
+        return;
+      }
     }
 
     await _loadCoreInfo(filePath);
@@ -868,38 +956,6 @@ class EditorState extends State<Editor> {
         quillChange: event,
       ),
     );
-  }
-
-  void _refreshCurrentNote() async {
-    if (coreInfo.readOnlyReason != .watchingServer) return;
-    if (!stows.loggedIn) return;
-
-    final relativeFilePath = coreInfo.filePath;
-    assert(relativeFilePath.isNotEmpty, 'Cannot refresh unnamed file');
-    final syncFile = await SaberSyncFile.relative(
-      relativeFilePath + Editor.extension,
-    );
-
-    final bestFile = await SaberSyncInterface.getBestFile(
-      syncFile,
-      onLocalFileNotFound: .local,
-      onEqualFiles: .local,
-      preferCache: false,
-    );
-    if (bestFile != .remote) return;
-
-    late final StreamSubscription<SaberSyncFile> subscription;
-    void listener(SaberSyncFile transferred) {
-      if (transferred != syncFile) return;
-      subscription.cancel();
-      _loadCoreInfo(relativeFilePath)
-          .then((_) => coreInfo.readOnlyReason = .watchingServer);
-    }
-
-    subscription = syncer.downloader.transferStream.listen(listener);
-
-    await syncer.downloader.enqueue(syncFile: syncFile);
-    syncer.downloader.bringToFront(syncFile);
   }
 
   void autosaveAfterDelay() {
@@ -1790,7 +1846,10 @@ class EditorState extends State<Editor> {
     final invert = stows.editorAutoInvert.value && brightness == .dark;
     final int currentPageIndex = this.currentPageIndex;
 
-    return EditorBottomSheet(
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        EditorBottomSheet(
       invert: invert,
       coreInfo: coreInfo,
       currentPageIndex: currentPageIndex,
@@ -1847,27 +1906,17 @@ class EditorState extends State<Editor> {
       pickPhotos: _pickPhotos,
       importPdf: importPdf,
       canRasterPdf: Editor.canRasterPdf,
-      getIsWatchingServer: () => _watchServerTimer?.isActive ?? false,
-      setIsWatchingServer: (bool watch) {
-        if (watch) {
-          _watchServerTimer ??= Timer.periodic(
-            const Duration(seconds: 5),
-            (_) => _refreshCurrentNote(),
-          );
-          if (coreInfo.readOnlyReason != .watchingServer) {
-            assert(coreInfo.readOnlyReason == null);
-            coreInfo.readOnlyReason = .watchingServer;
-            if (mounted) setState(() {});
-          }
-        } else {
-          _watchServerTimer?.cancel();
-          _watchServerTimer = null;
-          if (coreInfo.readOnlyReason == .watchingServer) {
-            coreInfo.readOnlyReason = null;
-            if (mounted) setState(() {});
-          }
-        }
-      },
+    ),
+        ListTile(
+          leading: const Icon(Icons.lock_outline),
+          title: const Text('Note lock'),
+          subtitle: const Text('Protect this note on this device'),
+          onTap: () {
+            Navigator.pop(context);
+            _manageNoteLock();
+          },
+        ),
+      ],
     );
   }
 
@@ -2110,7 +2159,6 @@ class EditorState extends State<Editor> {
     DynamicMaterialApp.removeFullscreenListener(_setState);
 
     _delayedSaveTimer?.cancel();
-    _watchServerTimer?.cancel();
     _lastSeenPointerCountTimer?.cancel();
     readingMode.removeListener(_onReadingModeChanged);
     readingMode.dispose();

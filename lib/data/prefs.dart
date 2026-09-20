@@ -10,8 +10,6 @@ import 'package:saber/components/home/sort_button.dart';
 import 'package:saber/components/navbar/responsive_navbar.dart';
 import 'package:saber/data/codecs/base64_codec.dart';
 import 'package:saber/data/flavor_config.dart';
-import 'package:saber/data/quota.dart';
-import 'package:saber/data/sentry/sentry_consent.dart';
 import 'package:saber/data/tools/highlighter.dart';
 import 'package:saber/data/tools/pen.dart';
 import 'package:sbn/canvas_background_pattern.dart';
@@ -51,45 +49,6 @@ class Stows {
     volatile: !_isOnMainIsolate,
   );
 
-  final allowInsecureConnections = SecureStow.bool(
-    'allowInsecureConnections',
-    false,
-    volatile: !_isOnMainIsolate,
-  );
-  final url = SecureStow('url', '', volatile: !_isOnMainIsolate);
-  final username = SecureStow('username', '', volatile: !_isOnMainIsolate);
-
-  /// the password used to login to Nextcloud
-  final ncPassword = SecureStow('ncPassword', '', volatile: !_isOnMainIsolate);
-
-  /// the password used to encrypt/decrypt notes
-  final encPassword = SecureStow(
-    'encPassword',
-    '',
-    volatile: !_isOnMainIsolate,
-  );
-
-  /// Whether the user is logged in and has provided both passwords.
-  /// Please ensure that the relevant Prefs are loaded before using this.
-  bool get loggedIn =>
-      username.value.isNotEmpty &&
-      ncPassword.value.isNotEmpty &&
-      encPassword.value.isNotEmpty;
-
-  final key = SecureStow('key', '', volatile: !_isOnMainIsolate);
-  final iv = SecureStow('iv', '', volatile: !_isOnMainIsolate);
-
-  final pfp = PlainStow<Uint8List?>(
-    'pfp',
-    null,
-    codec: const Base64StowCodec(),
-    volatile: !_isOnMainIsolate,
-  );
-  final syncInBackground = PlainStow(
-    'syncInBackground',
-    true,
-    volatile: !_isOnMainIsolate,
-  );
 
   final appTheme = PlainStow(
     'appTheme',
@@ -371,39 +330,6 @@ class Stows {
     volatile: !_isOnMainIsolate,
   );
 
-  /// File paths that have been deleted locally
-  final fileSyncAlreadyDeleted = PlainStow(
-    'fileSyncAlreadyDeleted',
-    <String>{},
-    volatile: !_isOnMainIsolate,
-  );
-
-  /// File paths that are known to be corrupted on Nextcloud
-  final fileSyncCorruptFiles = PlainStow(
-    'fileSyncCorruptFiles',
-    <String>{},
-    volatile: !_isOnMainIsolate,
-  );
-
-  /// Set when we want to resync everything.
-  /// Files on the server older than this date will be
-  /// reuploaded with the local version.
-  /// By default, we resync everything uploaded before v0.18.4, since uploads before then resulted in 0B files.
-  final fileSyncResyncEverythingDate = PlainStow(
-    'fileSyncResyncEverythingDate',
-    DateTime.parse('2023-12-10T10:06:31.000Z'),
-    codec: const DateTimeCodec(),
-    volatile: !_isOnMainIsolate,
-  );
-
-  /// The last storage quota that was fetched from Nextcloud
-  final lastStorageQuota = PlainStow<Quota?>(
-    'lastStorageQuota',
-    null,
-    codec: const QuotaCodec(),
-    volatile: !_isOnMainIsolate,
-  );
-
   final shouldCheckForUpdates = PlainStow(
     'shouldCheckForUpdates',
     FlavorConfig.shouldCheckForUpdatesByDefault && !Platform.isLinux,
@@ -416,13 +342,6 @@ class Stows {
   );
 
   final locale = PlainStow('locale', '', volatile: !_isOnMainIsolate);
-
-  final sentryConsent = PlainStow(
-    'sentryConsent',
-    SentryConsent.unknown,
-    codec: SentryConsent.codec,
-    volatile: !_isOnMainIsolate,
-  );
 
   @pragma('vm:platform-const')
   static final isDesktop =

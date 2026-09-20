@@ -8,13 +8,11 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:go_router/go_router.dart';
 import 'package:saber/components/navbar/responsive_navbar.dart';
 import 'package:saber/components/settings/app_info.dart';
-import 'package:saber/components/settings/nextcloud_profile.dart';
 import 'package:saber/components/settings/settings_button.dart';
 import 'package:saber/components/settings/settings_color.dart';
 import 'package:saber/components/settings/settings_directory_selector.dart';
 import 'package:saber/components/settings/settings_dropdown.dart';
 import 'package:saber/components/settings/settings_selection.dart';
-import 'package:saber/components/settings/settings_sentry.dart';
 import 'package:saber/components/settings/settings_subtitle.dart';
 import 'package:saber/components/settings/settings_switch.dart';
 import 'package:saber/components/settings/update_manager.dart';
@@ -29,7 +27,6 @@ import 'package:saber/data/is_this_a_test.dart';
 import 'package:saber/data/locales.dart';
 import 'package:saber/data/prefs.dart';
 import 'package:saber/data/routes.dart';
-import 'package:saber/data/sentry/sentry_init.dart';
 import 'package:saber/data/tools/shape_pen.dart';
 import 'package:saber/i18n/strings.g.dart';
 import 'package:stow/stow.dart';
@@ -190,7 +187,6 @@ class _SettingsPageState extends State<SettingsPage> {
           SliverSafeArea(
             sliver: SliverList.list(
               children: [
-                const NextcloudProfile(),
                 const Padding(padding: .all(8), child: AppInfo()),
 
                 SettingsSubtitle(subtitle: 'Study display'),
@@ -204,6 +200,26 @@ class _SettingsPageState extends State<SettingsPage> {
                   title: 'Reading mode',
                   subtitle: 'Open notes with editing controls hidden for focused reading. Reading mode uses the Paper / E-Ink display.',
                   icon: Icons.chrome_reader_mode,
+                  pref: stows.readingMode,
+                ),
+
+                SettingsSubtitle(subtitle: 'Productivity suite'),
+                SettingsButton(
+                  title: 'Mind Map',
+                  subtitle: 'Create and organize a local-first visual mind map.',
+                  icon: Icons.account_tree_outlined,
+                  onPressed: () => context.push(RoutePaths.mindMap),
+                ),
+                SettingsSwitch(
+                  title: 'Floating Pen Case',
+                  subtitle: 'Keep your writing tools within thumb reach.',
+                  icon: Icons.edit_note,
+                  pref: stows.floatingToolbar,
+                ),
+                SettingsSwitch(
+                  title: 'Study Mode',
+                  subtitle: 'Use Reading Mode as a distraction-free study surface.',
+                  icon: Icons.school_outlined,
                   pref: stows.readingMode,
                 ),
 
@@ -610,7 +626,6 @@ class _SettingsPageState extends State<SettingsPage> {
                   pref: stows.autoStraightenLines,
                 ),
                 SettingsSubtitle(subtitle: t.settings.prefCategories.advanced),
-                if (isSentryAvailable) const SettingsSentryConsent(),
                 if (Platform.isAndroid)
                   SettingsDirectorySelector(
                     title: t.settings.prefLabels.customDataDir,
@@ -657,13 +672,6 @@ class _SettingsPageState extends State<SettingsPage> {
                     ),
                   ),
                 ],
-                SettingsSwitch(
-                  title: t.settings.prefLabels.allowInsecureConnections,
-                  subtitle:
-                      t.settings.prefDescriptions.allowInsecureConnections,
-                  icon: Icons.private_connectivity,
-                  pref: stows.allowInsecureConnections,
-                ),
                 SettingsButton(
                   title: t.logs.viewLogs,
                   subtitle: t.logs.debuggingInfo,

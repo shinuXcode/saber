@@ -13,7 +13,6 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:saber/components/home/sort_button.dart';
-import 'package:saber/data/nextcloud/saber_syncer.dart';
 import 'package:saber/data/prefs.dart';
 import 'package:saber/i18n/strings.g.dart';
 import 'package:saber/pages/editor/editor.dart';
@@ -264,7 +263,7 @@ class FileManager {
 
     void afterWrite() {
       broadcastFileWrite(FileOperationType.write, filePath);
-      if (alsoUpload) syncer.uploader.enqueueRel(filePath);
+      // Device-only mode: never upload note changes.
       if (filePath.endsWith(Editor.extension)) {
         _removeReferences(
           '${filePath.substring(0, filePath.length - Editor.extension.length)}'
@@ -403,9 +402,6 @@ class FileManager {
       log.warning('Tried to move non-existent file from $fromPath to $toPath');
     }
 
-    syncer.uploader.enqueueRel(fromPath);
-    syncer.uploader.enqueueRel(toPath);
-
     _renameReferences(fromPath, toPath);
     broadcastFileWrite(FileOperationType.delete, fromPath);
     broadcastFileWrite(FileOperationType.write, toPath);
@@ -451,8 +447,6 @@ class FileManager {
     final file = getFile(filePath);
     if (!file.existsSync()) return;
     await file.delete();
-
-    if (alsoUpload) syncer.uploader.enqueueRel(filePath);
 
     _removeReferences(filePath);
     broadcastFileWrite(FileOperationType.delete, filePath);

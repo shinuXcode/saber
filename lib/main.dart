@@ -18,20 +18,16 @@ import 'package:saber/components/canvas/pencil_shader.dart';
 import 'package:saber/components/theming/dynamic_material_app.dart';
 import 'package:saber/data/file_manager/file_manager.dart';
 import 'package:saber/data/flavor_config.dart';
-import 'package:saber/data/nextcloud/nc_http_overrides.dart';
-import 'package:saber/data/nextcloud/saber_syncer.dart';
 import 'package:saber/data/prefs.dart';
 import 'package:saber/data/routes.dart';
-import 'package:saber/data/sentry/sentry_init.dart';
 import 'package:saber/data/tools/stroke_properties.dart';
 import 'package:saber/i18n/strings.g.dart';
 import 'package:saber/pages/editor/editor.dart';
 import 'package:saber/pages/home/home.dart';
+import 'package:saber/pages/home/mind_map.dart';
 import 'package:saber/pages/logs.dart';
-import 'package:saber/pages/user/login.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:worker_manager/worker_manager.dart';
-import 'package:workmanager/workmanager.dart';
 
 Future<void> main(List<String> args) async {
   /// To set the flavor config e.g. for the Play Store, use:
@@ -41,7 +37,7 @@ Future<void> main(List<String> args) async {
   ///   --dart-define=UPDATE_CHECK="false"
   FlavorConfig.setupFromEnvironment();
 
-  await initSentry(() => appRunner(args));
+  await appRunner(args);
 }
 
 Future<void> appRunner(List<String> args) async {
@@ -56,14 +52,12 @@ Future<void> appRunner(List<String> args) async {
   Logger.root.onRecord.listen((record) {
     logsHistory.add(record);
 
-    if (!isSentryEnabled) {
-      // ignore: avoid_print
-      print('${record.level.name}: ${record.loggerName}: ${record.message}');
-    }
+    // ignore: avoid_print
+    print('${record.level.name}: ${record.loggerName}: ${record.message}');
   });
 
   // For some reason, logging errors breaks hot reload while debugging.
-  if (!kDebugMode && !isSentryEnabled) {
+  if (!kDebugMode) {
     final errorLogger = Logger('ErrorLogger');
     FlutterError.onError = (details) {
       errorLogger.severe(
@@ -92,8 +86,6 @@ Future<void> appRunner(List<String> args) async {
       isolatesCount: kDebugMode ? 1 : 2,
     ),
     stows.locale.waitUntilRead(),
-    stows.url.waitUntilRead(),
-    stows.allowInsecureConnections.waitUntilRead(),
     PencilShader.init(),
     Printing.info().then((info) {
       Editor.canRasterPdf = info.canRaster;
@@ -118,31 +110,7 @@ Future<void> appRunner(List<String> args) async {
     }
   });
 
-  HttpOverrides.global = NcHttpOverrides();
-  runApp(SentryWidget(child: TranslationProvider(child: const App())));
-  startSyncAfterLoaded();
-  setupBackgroundSync();
-}
-
-void startSyncAfterLoaded() async {
-  await stows.username.waitUntilRead();
-  await stows.encPassword.waitUntilRead();
-
-  stows.username.removeListener(startSyncAfterLoaded);
-  stows.encPassword.removeListener(startSyncAfterLoaded);
-  if (!stows.loggedIn) {
-    // try again when logged in
-    stows.username.addListener(startSyncAfterLoaded);
-    stows.encPassword.addListener(startSyncAfterLoaded);
-    return;
-  }
-
-  // wait for other prefs to load
-  await Future.delayed(const Duration(milliseconds: 100));
-
-  // start syncing
-  syncer.downloader.refresh();
-  syncer.uploader.refresh();
+  runApp(TranslationProvider(child: const App()));
 }
 
 void setLocale() {
@@ -154,81 +122,6 @@ void setLocale() {
   }
 }
 
-void setupBackgroundSync() {
-  if (!Platform.isAndroid && !Platform.isIOS) return;
-  if (!stows.syncInBackground.loaded) {
-    return stows.syncInBackground.addListener(setupBackgroundSync);
-  } else {
-    stows.syncInBackground.removeListener(setupBackgroundSync);
-  }
-  if (!stows.syncInBackground.value) return;
-
-  Workmanager().initialize(doBackgroundSync);
-  const uniqueName = 'background-sync';
-  const initialDelay = Duration(hours: 12);
-  final constraints = Constraints(
-    networkType: NetworkType.unmetered,
-    requiresBatteryNotLow: true,
-    requiresCharging: false,
-    requiresDeviceIdle: true,
-    requiresStorageNotLow: true,
-  );
-
-  if (Platform.isAndroid)
-    Workmanager().registerPeriodicTask(
-      uniqueName,
-      uniqueName,
-      frequency: initialDelay,
-      initialDelay: initialDelay,
-      constraints: constraints,
-    );
-  else if (Platform.isIOS)
-    Workmanager().registerOneOffTask(
-      uniqueName,
-      uniqueName,
-      initialDelay: initialDelay,
-      constraints: constraints,
-    );
-}
-
-@pragma('vm:entry-point')
-void doBackgroundSync() {
-  Workmanager().executeTask((_, _) async {
-    FlavorConfig.setupFromEnvironment();
-    StrokeOptionsExtension.setDefaults();
-    Editor.canRasterPdf = false;
-
-    await Future.wait([
-      FileManager.init(),
-      workerManager.init(
-        // Fewer isolates in debug mode to avoid slowing down hot reload
-        isolatesCount: kDebugMode ? 1 : 2,
-      ),
-      stows.url.waitUntilRead(),
-      stows.allowInsecureConnections.waitUntilRead(),
-    ]);
-
-    /// Only sync a few files to avoid using too much data/battery
-    const maxFilesSynced = 10;
-    var filesSynced = 0;
-    final completer = Completer<bool>();
-    late final StreamSubscription<SaberSyncFile> transferSubscription;
-    void transferListener([_]) {
-      filesSynced++;
-      if (filesSynced >= maxFilesSynced ||
-          syncer.downloader.numPending <= 0 ||
-          completer.isCompleted) {
-        transferSubscription.cancel();
-        if (!completer.isCompleted) completer.complete(filesSynced > 0);
-      }
-    }
-
-    transferSubscription = syncer.downloader.transferStream.listen(
-      transferListener,
-    );
-    return completer.future;
-  });
-}
 
 class const App({super.key}) extends StatefulWidget {
   static final log = Logger('App');
@@ -255,10 +148,9 @@ class const App({super.key}) extends StatefulWidget {
         ),
       ),
       GoRoute(
-        path: RoutePaths.login,
-        builder: (context, state) => const NcLoginPage(),
+        path: RoutePaths.mindMap,
+        builder: (context, state) => const MindMapPage(),
       ),
-      GoRoute(path: '/profile', redirect: (context, state) => RoutePaths.login),
       GoRoute(
         path: RoutePaths.logs,
         builder: (context, state) => const LogsPage(),
