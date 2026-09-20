@@ -24,6 +24,7 @@ import 'package:saber/data/tools/stroke_properties.dart';
 import 'package:saber/i18n/strings.g.dart';
 import 'package:saber/pages/editor/editor.dart';
 import 'package:saber/pages/home/home.dart';
+import 'package:saber/pages/home/mind_map.dart';
 import 'package:saber/pages/logs.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:worker_manager/worker_manager.dart';
@@ -51,14 +52,12 @@ Future<void> appRunner(List<String> args) async {
   Logger.root.onRecord.listen((record) {
     logsHistory.add(record);
 
-    if (!isSentryEnabled) {
-      // ignore: avoid_print
-      print('${record.level.name}: ${record.loggerName}: ${record.message}');
-    }
+    // ignore: avoid_print
+    print('${record.level.name}: ${record.loggerName}: ${record.message}');
   });
 
   // For some reason, logging errors breaks hot reload while debugging.
-  if (!kDebugMode && !isSentryEnabled) {
+  if (!kDebugMode) {
     final errorLogger = Logger('ErrorLogger');
     FlutterError.onError = (details) {
       errorLogger.severe(
@@ -123,81 +122,6 @@ void setLocale() {
   }
 }
 
-void setupBackgroundSync() {
-  if (!Platform.isAndroid && !Platform.isIOS) return;
-  if (!stows.syncInBackground.loaded) {
-    return stows.syncInBackground.addListener(setupBackgroundSync);
-  } else {
-    stows.syncInBackground.removeListener(setupBackgroundSync);
-  }
-  if (!stows.syncInBackground.value) return;
-
-  Workmanager().initialize(doBackgroundSync);
-  const uniqueName = 'background-sync';
-  const initialDelay = Duration(hours: 12);
-  final constraints = Constraints(
-    networkType: NetworkType.unmetered,
-    requiresBatteryNotLow: true,
-    requiresCharging: false,
-    requiresDeviceIdle: true,
-    requiresStorageNotLow: true,
-  );
-
-  if (Platform.isAndroid)
-    Workmanager().registerPeriodicTask(
-      uniqueName,
-      uniqueName,
-      frequency: initialDelay,
-      initialDelay: initialDelay,
-      constraints: constraints,
-    );
-  else if (Platform.isIOS)
-    Workmanager().registerOneOffTask(
-      uniqueName,
-      uniqueName,
-      initialDelay: initialDelay,
-      constraints: constraints,
-    );
-}
-
-@pragma('vm:entry-point')
-void doBackgroundSync() {
-  Workmanager().executeTask((_, _) async {
-    FlavorConfig.setupFromEnvironment();
-    StrokeOptionsExtension.setDefaults();
-    Editor.canRasterPdf = false;
-
-    await Future.wait([
-      FileManager.init(),
-      workerManager.init(
-        // Fewer isolates in debug mode to avoid slowing down hot reload
-        isolatesCount: kDebugMode ? 1 : 2,
-      ),
-      stows.url.waitUntilRead(),
-      stows.allowInsecureConnections.waitUntilRead(),
-    ]);
-
-    /// Only sync a few files to avoid using too much data/battery
-    const maxFilesSynced = 10;
-    var filesSynced = 0;
-    final completer = Completer<bool>();
-    late final StreamSubscription<SaberSyncFile> transferSubscription;
-    void transferListener([_]) {
-      filesSynced++;
-      if (filesSynced >= maxFilesSynced ||
-          syncer.downloader.numPending <= 0 ||
-          completer.isCompleted) {
-        transferSubscription.cancel();
-        if (!completer.isCompleted) completer.complete(filesSynced > 0);
-      }
-    }
-
-    transferSubscription = syncer.downloader.transferStream.listen(
-      transferListener,
-    );
-    return completer.future;
-  });
-}
 
 class const App({super.key}) extends StatefulWidget {
   static final log = Logger('App');
