@@ -37,7 +37,6 @@ import 'package:saber/data/editor/page.dart';
 import 'package:saber/data/extensions/change_notifier_extensions.dart';
 import 'package:saber/data/extensions/matrix4_extensions.dart';
 import 'package:saber/data/file_manager/file_manager.dart';
-import 'package:saber/data/nextcloud/saber_syncer.dart';
 import 'package:saber/data/prefs.dart';
 import 'package:saber/data/tools/_tool.dart';
 import 'package:saber/data/tools/eraser.dart';
@@ -166,7 +165,6 @@ class EditorState extends State<Editor> {
   );
   var _paperEinkWasEnabledBeforeReading = false;
   Timer? _delayedSaveTimer;
-  Timer? _watchServerTimer;
 
   // used to prevent accidentally drawing when pinch zooming
   var lastSeenPointerCount = 0;
@@ -868,38 +866,6 @@ class EditorState extends State<Editor> {
         quillChange: event,
       ),
     );
-  }
-
-  void _refreshCurrentNote() async {
-    if (coreInfo.readOnlyReason != .watchingServer) return;
-    if (!stows.loggedIn) return;
-
-    final relativeFilePath = coreInfo.filePath;
-    assert(relativeFilePath.isNotEmpty, 'Cannot refresh unnamed file');
-    final syncFile = await SaberSyncFile.relative(
-      relativeFilePath + Editor.extension,
-    );
-
-    final bestFile = await SaberSyncInterface.getBestFile(
-      syncFile,
-      onLocalFileNotFound: .local,
-      onEqualFiles: .local,
-      preferCache: false,
-    );
-    if (bestFile != .remote) return;
-
-    late final StreamSubscription<SaberSyncFile> subscription;
-    void listener(SaberSyncFile transferred) {
-      if (transferred != syncFile) return;
-      subscription.cancel();
-      _loadCoreInfo(relativeFilePath)
-          .then((_) => coreInfo.readOnlyReason = .watchingServer);
-    }
-
-    subscription = syncer.downloader.transferStream.listen(listener);
-
-    await syncer.downloader.enqueue(syncFile: syncFile);
-    syncer.downloader.bringToFront(syncFile);
   }
 
   void autosaveAfterDelay() {
@@ -1847,27 +1813,6 @@ class EditorState extends State<Editor> {
       pickPhotos: _pickPhotos,
       importPdf: importPdf,
       canRasterPdf: Editor.canRasterPdf,
-      getIsWatchingServer: () => _watchServerTimer?.isActive ?? false,
-      setIsWatchingServer: (bool watch) {
-        if (watch) {
-          _watchServerTimer ??= Timer.periodic(
-            const Duration(seconds: 5),
-            (_) => _refreshCurrentNote(),
-          );
-          if (coreInfo.readOnlyReason != .watchingServer) {
-            assert(coreInfo.readOnlyReason == null);
-            coreInfo.readOnlyReason = .watchingServer;
-            if (mounted) setState(() {});
-          }
-        } else {
-          _watchServerTimer?.cancel();
-          _watchServerTimer = null;
-          if (coreInfo.readOnlyReason == .watchingServer) {
-            coreInfo.readOnlyReason = null;
-            if (mounted) setState(() {});
-          }
-        }
-      },
     );
   }
 
@@ -2110,7 +2055,6 @@ class EditorState extends State<Editor> {
     DynamicMaterialApp.removeFullscreenListener(_setState);
 
     _delayedSaveTimer?.cancel();
-    _watchServerTimer?.cancel();
     _lastSeenPointerCountTimer?.cancel();
     readingMode.removeListener(_onReadingModeChanged);
     readingMode.dispose();
