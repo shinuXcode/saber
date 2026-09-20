@@ -174,10 +174,35 @@ class ExplicitlyThemedApp extends StatelessWidget {
       canvasColor: paper,
       cardColor: paper,
       dialogBackgroundColor: paper,
+      dividerColor: ink.withValues(alpha: 0.16),
+      shadowColor: Colors.transparent,
       colorScheme: source.colorScheme.copyWith(
         surface: paper,
         surfaceContainer: paper,
+        surfaceContainerHighest: paper,
         onSurface: ink,
+        onSurfaceVariant: ink.withValues(alpha: 0.82),
+        outline: ink.withValues(alpha: 0.35),
+      ),
+      appBarTheme: source.appBarTheme.copyWith(
+        backgroundColor: paper,
+        foregroundColor: ink,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        shadowColor: Colors.transparent,
+      ),
+      cardTheme: source.cardTheme.copyWith(
+        color: paper,
+        elevation: 0,
+        shadowColor: Colors.transparent,
+      ),
+      popupMenuTheme: source.popupMenuTheme.copyWith(
+        color: paper,
+        elevation: 0,
+      ),
+      dialogTheme: source.dialogTheme.copyWith(
+        backgroundColor: paper,
+        elevation: 0,
       ),
       splashFactory: NoSplash.splashFactory,
     );
