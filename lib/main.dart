@@ -18,20 +18,15 @@ import 'package:saber/components/canvas/pencil_shader.dart';
 import 'package:saber/components/theming/dynamic_material_app.dart';
 import 'package:saber/data/file_manager/file_manager.dart';
 import 'package:saber/data/flavor_config.dart';
-import 'package:saber/data/nextcloud/nc_http_overrides.dart';
-import 'package:saber/data/nextcloud/saber_syncer.dart';
 import 'package:saber/data/prefs.dart';
 import 'package:saber/data/routes.dart';
-import 'package:saber/data/sentry/sentry_init.dart';
 import 'package:saber/data/tools/stroke_properties.dart';
 import 'package:saber/i18n/strings.g.dart';
 import 'package:saber/pages/editor/editor.dart';
 import 'package:saber/pages/home/home.dart';
 import 'package:saber/pages/logs.dart';
-import 'package:saber/pages/user/login.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:worker_manager/worker_manager.dart';
-import 'package:workmanager/workmanager.dart';
 
 Future<void> main(List<String> args) async {
   /// To set the flavor config e.g. for the Play Store, use:
@@ -41,7 +36,7 @@ Future<void> main(List<String> args) async {
   ///   --dart-define=UPDATE_CHECK="false"
   FlavorConfig.setupFromEnvironment();
 
-  await initSentry(() => appRunner(args));
+  await appRunner(args);
 }
 
 Future<void> appRunner(List<String> args) async {
@@ -92,8 +87,6 @@ Future<void> appRunner(List<String> args) async {
       isolatesCount: kDebugMode ? 1 : 2,
     ),
     stows.locale.waitUntilRead(),
-    stows.url.waitUntilRead(),
-    stows.allowInsecureConnections.waitUntilRead(),
     PencilShader.init(),
     Printing.info().then((info) {
       Editor.canRasterPdf = info.canRaster;
@@ -118,31 +111,7 @@ Future<void> appRunner(List<String> args) async {
     }
   });
 
-  HttpOverrides.global = NcHttpOverrides();
-  runApp(SentryWidget(child: TranslationProvider(child: const App())));
-  startSyncAfterLoaded();
-  setupBackgroundSync();
-}
-
-void startSyncAfterLoaded() async {
-  await stows.username.waitUntilRead();
-  await stows.encPassword.waitUntilRead();
-
-  stows.username.removeListener(startSyncAfterLoaded);
-  stows.encPassword.removeListener(startSyncAfterLoaded);
-  if (!stows.loggedIn) {
-    // try again when logged in
-    stows.username.addListener(startSyncAfterLoaded);
-    stows.encPassword.addListener(startSyncAfterLoaded);
-    return;
-  }
-
-  // wait for other prefs to load
-  await Future.delayed(const Duration(milliseconds: 100));
-
-  // start syncing
-  syncer.downloader.refresh();
-  syncer.uploader.refresh();
+  runApp(TranslationProvider(child: const App()));
 }
 
 void setLocale() {
@@ -254,11 +223,6 @@ class const App({super.key}) extends StatefulWidget {
           pdfPath: state.uri.queryParameters['pdfPath'],
         ),
       ),
-      GoRoute(
-        path: RoutePaths.login,
-        builder: (context, state) => const NcLoginPage(),
-      ),
-      GoRoute(path: '/profile', redirect: (context, state) => RoutePaths.login),
       GoRoute(
         path: RoutePaths.logs,
         builder: (context, state) => const LogsPage(),
