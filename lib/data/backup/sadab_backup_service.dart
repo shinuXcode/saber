@@ -45,11 +45,16 @@ class SadabBackupService {
       dialogTitle: 'Restore Sadab A backup',
       type: FileType.custom,
       allowedExtensions: const ['zip'],
-      withData: true,
     );
-    if (result == null || result.files.single.bytes == null) return false;
+    if (result == null) return false;
 
-    final archive = ZipDecoder().decodeBytes(result.files.single.bytes!);
+    final selected = result.files.single;
+    final bytes = selected.bytes ?? (selected.path != null
+        ? await File(selected.path!).readAsBytes()
+        : null);
+    if (bytes == null) return false;
+
+    final archive = ZipDecoder().decodeBytes(bytes);
     final root = Directory(FileManager.documentsDirectory);
     await root.create(recursive: true);
 
