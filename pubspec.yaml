@@ -62,6 +62,7 @@ dependencies:
   flutter_quill: ^11.5.1
   window_manager: ^0.5.1
   archive: ^4.0.3
+  background_downloader: ^9.6.1
   flutter_sharing_intent: ^2.0.4
 
   onyxsdk_pen:
