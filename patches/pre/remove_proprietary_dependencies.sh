@@ -4,7 +4,7 @@ set -e
 echo -n "Removing onyxsdk_pen dependency from pubspec.yaml: "
 if grep -q "onyxsdk_pen" pubspec.yaml; then
   echo "found"
-  sed -i -e '/onyxsdk_pen/d' pubspec.yaml
+  sed -i -e '/^[[:space:]]*onyxsdk_pen:/,+1d' pubspec.yaml
 else
   echo "already done"
 fi
