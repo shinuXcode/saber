@@ -85,6 +85,9 @@ jobs:
         if: matrix.foss
         run: flutter pub get
 
+      - name: Resolve dependencies
+        run: flutter pub get
+
       - name: Build apk
         run: flutter build apk --release
 
