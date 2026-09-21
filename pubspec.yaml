@@ -52,6 +52,12 @@ dependencies:
 
   flutter_secure_storage: ^11.0.0
 
+  # Required for .sbn2 BSON serialization and legacy note compatibility.
+  bson: ^5.0.8
+  fixnum: ^1.1.1
+  worker_manager: ^6.5.0
+
+
   url_launcher: ^6.1.8
 
   collapsible: ^1.0.0
@@ -107,6 +113,7 @@ dependencies:
   path_drawing: ^1.0.1
 
   printing: ^5.13.2
+  pool: ^1.5.1
 
   open_file: ^4.0.0
 
