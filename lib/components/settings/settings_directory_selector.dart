@@ -8,7 +8,6 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:saber/components/theming/adaptive_alert_dialog.dart';
 import 'package:saber/data/file_manager/file_manager.dart';
-import 'package:saber/data/nextcloud/saber_syncer.dart';
 import 'package:saber/data/prefs.dart';
 import 'package:saber/i18n/strings.g.dart';
 import 'package:sbn/font_fallbacks.dart';
@@ -80,13 +79,11 @@ class DirectorySelector extends StatefulWidget {
     required this.title,
     required this.initialDirectory,
     this.mustBeEmpty = true,
-    this.mustBeDoneSyncing = true,
   });
 
   final String title;
   final String initialDirectory;
   final bool mustBeEmpty;
-  final bool mustBeDoneSyncing;
 
   @override
   State<DirectorySelector> createState() => _DirectorySelectorState();
@@ -144,10 +141,7 @@ class _DirectorySelectorState extends State<DirectorySelector> {
     final colorScheme = ColorScheme.of(context);
 
     final emptyError = widget.mustBeEmpty && !_isEmpty;
-    final syncingError =
-        widget.mustBeDoneSyncing &&
-        (syncer.uploader.numPending > 0 || syncer.downloader.numPending > 0);
-    final anyErrors = emptyError || syncingError;
+    final anyErrors = emptyError;
 
     return AdaptiveAlertDialog(
       title: Text(widget.title),
@@ -181,11 +175,6 @@ class _DirectorySelectorState extends State<DirectorySelector> {
           if (emptyError)
             Text(
               t.settings.customDataDir.mustBeEmpty,
-              style: TextStyle(color: colorScheme.error),
-            ),
-          if (syncingError)
-            Text(
-              t.settings.customDataDir.mustBeDoneSyncing,
               style: TextStyle(color: colorScheme.error),
             ),
         ],
