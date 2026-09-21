@@ -29,8 +29,6 @@ class EditorBottomSheet extends StatefulWidget {
     required this.pickPhotos,
     required this.importPdf,
     required this.canRasterPdf,
-    required this.getIsWatchingServer,
-    required this.setIsWatchingServer,
   });
 
   final bool invert;
@@ -47,8 +45,6 @@ class EditorBottomSheet extends StatefulWidget {
   final Future<int> Function() pickPhotos;
   final Future<bool> Function() importPdf;
   final bool canRasterPdf;
-  final bool Function() getIsWatchingServer;
-  final void Function(bool) setIsWatchingServer;
 
   @override
   State<EditorBottomSheet> createState() => _EditorBottomSheetState();
@@ -317,24 +313,6 @@ class _EditorBottomSheetState extends State<EditorBottomSheet> {
               ],
             ),
             const SizedBox(height: 16),
-            if (stows.loggedIn) ...[
-              StatefulBuilder(
-                builder: (context, setState) {
-                  final isWatchingServer = widget.getIsWatchingServer();
-                  return CheckboxListTile.adaptive(
-                    value: isWatchingServer,
-                    title: Text(t.editor.menu.watchServer),
-                    subtitle: isWatchingServer
-                        ? Text(t.editor.menu.watchServerReadOnly)
-                        : null,
-                    onChanged: (value) => setState(() {
-                      widget.setIsWatchingServer(value!);
-                    }),
-                  );
-                },
-              ),
-              const SizedBox(height: 16),
-            ],
           ],
         ),
       ),
