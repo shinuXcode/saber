@@ -1670,6 +1670,7 @@ class EditorState extends State<Editor> {
           exportAsPng: exportAsPng,
         ),
       ),
+      ),
     );
 
     final Widget body;
